@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>NCP: North Celestial Polar Finder Simulator</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, minimal-ui"/>
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+   </head>
+
+<body style="font-family:sans-serif;background:black;">
+
+    <div style="padding-top:10px;">
+    </div>
+
+    <img id="reticle" style="display:block;width:100%; margin-left: auto; margin-right: auto; max-width:400px;padding-bottom:20px;"
+        src="reticle.png">
+
+    <div style="margin-left:auto;margin-right:auto;padding-top:20px; padding-bottom:20px;z-index:100;position:relative;text-align:center;font-size:21px;font-weight:bold;color:red;">
+       <div id="thetime"></div>
+       <div style="color:maroon">NCP: North Celestial Polar Finder Simulator</div>
+    </div>
+
+    <script type="text/javascript">
+
+    function sign(x)  {
+        if (0 == x)  {
+            return 1;
+        }
+        return (x / Math.abs(x));
+    }
+
+    //signed integer part of x
+    function int(x)  {
+        return sign(x) * Math.floor(Math.abs(x));
+    }
+
+    function toHours(d)  {
+        return d - (int(d / 24)) * 24;
+    }
+
+    function toDegrees(d)  {
+        return d - (int(d / 360)) * 360;
+    }
+
+    var pi = Math.PI;
+    var twoPi = 2 * pi;
+    var degs = 180 / pi;
+    var rads = pi / 180;
+
+    //http://spider.seds.org/spider/Misc/alphaUMi.html
+    var polarisRA =  2 + 31/60 + 50.5/3600; //02 : 31 : 50.5
+    var latitude = 0;
+    var longitude = 0;
+
+    //from http://aa.usno.navy.mil/faq/docs/JD_Formula.php
+    //valid for 1801–2099
+    //replaces port from stargazing.net likely problem being
+    //unclear use of integer arithmetic
+    function julianDay(Y, M, D, UT)  {
+        var JD = 367*Y - int((7*(Y+int((M+9)/12)))/4) + int((275*M)/9) + 
+            D + 1721013.5 + UT/24  - 0.5 * sign(100*Y + M-190002.5) + 0.5;
+        return JD;
+    }
+
+    function sunDay(y, m, d, h)  {
+console.log("sunDay args " + y + " " + m + " " +d + " " + h) ;
+
+        return julianDay(y, m, d, h) - julianDay(2000,1,1,12);
+    }
+
+    var lastUpdate = (new Date()).getTime();
+
+    function showTime()  {
+        var date = new Date();
+        lastUpdate = date.getTime();
+        var h = date.getUTCHours() + (date.getMinutes() / 60) +
+            (date.getSeconds() / 3600);
+        var jd = julianDay(date.getFullYear(), date.getUTCMonth() + 1,
+                date.getUTCDate(), h);
+        console.log("julian date " + jd) ;
+        var d = sunDay(date.getFullYear(), date.getUTCMonth() + 1,
+                date.getUTCDate(), h);
+        console.log("sunDay " + d) ;
+        var gmst = 18.697374558 + 24.06570982441908 * d;
+        var gmsthours = toHours(gmst);
+        var lsthours = toHours(gmst + longitude / 15);
+        var haPolaris = lsthours - polarisRA;
+        var degPolaris = 360 - toDegrees(haPolaris * 15);
+        document.getElementById("thetime").innerHTML = date;
+        var reticle = document.getElementById("reticle");
+        reticle.style.webkitTransform
+                = "rotate(" + degPolaris + "deg)";
+        window.setTimeout(showTime,1000);
+    }
+
+//    window.addEventListener("pageShow", restartShowTime);
+
+    navigator.geolocation.getCurrentPosition(setupWithPosition);
+
+//    function restartShowTime()  {
+//        if ((new Date()).getTime() - lastUpdate > 1000)  {
+//            alert("showtime again");
+//            showTime();
+//        }
+//    }
+
+    function setupWithPosition(position)  {
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+        showTime();
+        window.scrollTo(0, 1);
+    }
+
+    </script>
+
+    <div id="timedisplay">
+    </div>
+</body>
+</html>
+
